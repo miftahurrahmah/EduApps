@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:edu_apps/page_edu/page_login.dart';
+import 'package:edu_apps/page_edu/page_profil_user.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../model_edu/model_berita.dart';
-
+import '../utils/session_manager.dart';
 
 
 class PageBerita extends StatefulWidget {
@@ -13,14 +15,28 @@ class PageBerita extends StatefulWidget {
   State<PageBerita> createState() => _PageBeritaState();
 }
 
-class _PageBeritaState extends State<PageBerita> {
+class _PageBeritaState extends State<PageBerita> with SingleTickerProviderStateMixin {
   late Future<List<Datum>?> _beritaFuture;
-  TextEditingController txtCari = TextEditingController();
+  late TabController tabController;
+  late Color? containerColor;
+  late SessionLatihanManager sessionManager;
+  TextEditingController txtCari = TextEditingController(); // Tambahkan ini
 
   @override
   void initState() {
     super.initState();
+    sessionManager = SessionLatihanManager();
     _beritaFuture = getBerita();
+    tabController = TabController(length: 3, vsync: this);
+    containerColor = Colors.transparent;
+    tabController.addListener(_handleTabSelection);
+    sessionManager.getSession();
+  }
+
+  void _handleTabSelection() {
+    setState(() {
+      containerColor = Colors.blue;
+    });
   }
 
   Future<List<Datum>?> getBerita() async {
@@ -49,136 +65,145 @@ class _PageBeritaState extends State<PageBerita> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'Berita Edukasi',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        title: const Text('Aplikasi'),
+        actions: [
+          TextButton(onPressed: (){
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PageProfileUser()),
+            );
+          }, child: Text('Hi ${sessionManager.userName ?? 'nabila23'}')),
+          //logout
+          IconButton(onPressed: (){
+            //clear session
+            setState(() {
+              sessionManager.clearSession();
+              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)
+              => PageLoginApi()
+              ),
+                      (route) => false);
+            });
+          },
+            icon: Icon(Icons.exit_to_app), tooltip: 'Logout',)
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: TextField(
+              controller: txtCari,
+              decoration: InputDecoration(
+                hintText: 'Cari berita...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onChanged: (_) {
+                setState(() {});
+              },
             ),
           ),
-          centerTitle: true,
-        ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: TextField(
-                controller: txtCari,
-                decoration: InputDecoration(
-                  hintText: 'Cari berita...',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onChanged: (_) {
-                  setState(() {});
-                },
-              ),
-            ),
-            Expanded(
-              child: FutureBuilder(
-                future: _beritaFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.orange,
-                      ),
-                    );
-                  } else if (snapshot.hasError) {
-                    return Center(
-                      child: Text(snapshot.error.toString()),
-                    );
-                  } else if (snapshot.hasData) {
-                    List<Datum>? berita = snapshot.data as List<Datum>?;
-                    List<Datum> filteredBerita = filterBerita(
-                        berita, txtCari.text); // Filter the news
-                    return filteredBerita.isEmpty
-                        ? Center(
-                      child: Text('Tidak ada berita yang ditemukan.'),
-                    )
-                        : ListView.builder(
-                      itemCount: filteredBerita.length,
-                      itemBuilder: (context, index) {
-                        Datum data = filteredBerita[index];
-                        return Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DetailBerita(data),
-                                ),
-                              );
-                            },
-                            child: Card(
-                              child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: ClipRRect(
-                                      borderRadius:
-                                      BorderRadius.circular(10),
-                                      child: Center(
-                                        child: Image.network(
-                                          'http://'
-                                              '192.168.1.24/edukasi_server/gambar_berita/${data
-                                              .gambar}',
-                                          width: 250,
-                                          height: 300,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Text(
-                                      data.judul,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.orange,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      data.berita,
-                                      maxLines: 2,
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.black),
-                                    ),
-                                  ),
-                                ],
+          Expanded(
+            child: FutureBuilder(
+              future: _beritaFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.orange,
+                    ),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text(snapshot.error.toString()),
+                  );
+                } else if (snapshot.hasData) {
+                  List<Datum>? berita = snapshot.data as List<Datum>?;
+                  List<Datum> filteredBerita = filterBerita(
+                      berita, txtCari.text); // Filter the news
+                  return filteredBerita.isEmpty
+                      ? Center(
+                    child: Text('Tidak ada berita yang ditemukan.'),
+                  )
+                      : ListView.builder(
+                    itemCount: filteredBerita.length,
+                    itemBuilder: (context, index) {
+                      Datum data = filteredBerita[index];
+                      return Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DetailBerita(data),
                               ),
+                            );
+                          },
+                          child: Card(
+                            child: Column(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: ClipRRect(
+                                    borderRadius:
+                                    BorderRadius.circular(10),
+                                    child: Center(
+                                      child: Image.network(
+                                        'http://'
+                                            '10.127.249.116/edukasi_server/gambar_berita/${data
+                                            .gambar}',
+                                        width: 250,
+                                        height: 300,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                ListTile(
+                                  title: Text(
+                                    data.judul,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    data.berita,
+                                    maxLines: 2,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
-                    );
-                  } else {
-                    return Center(
-                      child: Text('No data available.'),
-                    );
-                  }
-                },
-              ),
+                        ),
+                      );
+                    },
+                  );
+                } else {
+                  return Center(
+                    child: Text('No data available.'),
+                  );
+                }
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
-
-
-
-
 
 class DetailBerita extends StatelessWidget {
   final Datum? data;
@@ -188,6 +213,7 @@ class DetailBerita extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.blue,
         title: Text(
           'Berita Edukasi',
           style: TextStyle(
@@ -204,7 +230,7 @@ class DetailBerita extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: Image.network(
-                'http://192.168.1.24/edukasi_server/gambar_berita/${data?.gambar}',
+                'http://10.127.249.116/edukasi_server/gambar_berita/${data?.gambar}',
                 height: 300,
                 fit: BoxFit.fill,
               ),
@@ -213,6 +239,16 @@ class DetailBerita extends StatelessWidget {
           ListTile(
             title: Text(
               data!.judul,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
+            trailing: const Icon(
+              Icons.star,
+              color: Colors.red,
+            ),
+          ),
+          ListTile(
+            title: Text(
+              data!.konten,
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             trailing: const Icon(

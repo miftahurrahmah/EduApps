@@ -3,7 +3,6 @@ import 'package:edu_apps/page_edu/page_bottom_navigation.dart';
 import 'package:edu_apps/page_edu/page_register.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import '../model_edu/model_login.dart';
 import '../utils/session_manager.dart';
 

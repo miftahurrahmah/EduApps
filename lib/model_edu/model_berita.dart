@@ -35,6 +35,7 @@ class ModelBerita {
 class Datum {
   String id;
   String judul;
+  String konten;
   String berita;
   String gambar;
 
@@ -43,6 +44,7 @@ class Datum {
     required this.judul,
     required this.berita,
     required this.gambar,
+    required this.konten,
   });
 
   factory Datum.fromJson(Map<String, dynamic> json) {
@@ -51,6 +53,7 @@ class Datum {
       judul: json["judul"] ?? "",
       berita: json["berita"] ?? "",
       gambar: json["gambar"] ?? "placeholder.jpg",
+      konten: json["konten"] ?? "",
     );
   }
 
@@ -59,5 +62,6 @@ class Datum {
     "judul": judul,
     "berita": berita,
     "gambar": gambar,
+    "konten": konten,
   };
 }
